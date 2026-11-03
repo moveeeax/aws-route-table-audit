@@ -1,0 +1,134 @@
+{
+  "region": "eu-central-1",
+  "route_tables": [
+    {
+      "RouteTableId": "rtb-0a1public",
+      "VpcId": "vpc-0prod",
+      "Tags": [{ "Key": "Name", "Value": "prod-public" }],
+      "Associations": [
+        { "RouteTableAssociationId": "rtbassoc-0main", "RouteTableId": "rtb-0a1public", "Main": true },
+        {
+          "RouteTableAssociationId": "rtbassoc-0pub-a",
+          "RouteTableId": "rtb-0a1public",
+          "SubnetId": "subnet-0pub-a",
+          "Main": false
+        },
+        {
+          "RouteTableAssociationId": "rtbassoc-0pub-b",
+          "RouteTableId": "rtb-0a1public",
+          "SubnetId": "subnet-0pub-b",
+          "Main": false
+        }
+      ],
+      "Routes": [
+        { "DestinationCidrBlock": "10.20.0.0/16", "GatewayId": "local", "State": "active" },
+        { "DestinationCidrBlock": "0.0.0.0/0", "GatewayId": "igw-0prod", "State": "active" }
+      ]
+    },
+    {
+      "RouteTableId": "rtb-0b2private-a",
+      "VpcId": "vpc-0prod",
+      "Tags": [{ "Key": "Name", "Value": "prod-private-1a" }],
+      "Associations": [
+        {
+          "RouteTableAssociationId": "rtbassoc-0priv-a",
+          "RouteTableId": "rtb-0b2private-a",
+          "SubnetId": "subnet-0priv-a",
+          "Main": false
+        }
+      ],
+      "Routes": [
+        { "DestinationCidrBlock": "10.20.0.0/16", "GatewayId": "local", "State": "active" },
+        { "DestinationCidrBlock": "0.0.0.0/0", "NatGatewayId": "nat-0retired", "State": "blackhole" },
+        {
+          "DestinationCidrBlock": "10.90.0.0/16",
+          "VpcPeeringConnectionId": "pcx-0analytics",
+          "State": "active"
+        },
+        {
+          "DestinationCidrBlock": "10.90.7.0/24",
+          "TransitGatewayId": "tgw-0hub",
+          "State": "active"
+        }
+      ]
+    },
+    {
+      "RouteTableId": "rtb-0c3private-b",
+      "VpcId": "vpc-0prod",
+      "Tags": [{ "Key": "Name", "Value": "prod-private-1b" }],
+      "Associations": [
+        {
+          "RouteTableAssociationId": "rtbassoc-0priv-b",
+          "RouteTableId": "rtb-0c3private-b",
+          "SubnetId": "subnet-0priv-b",
+          "Main": false
+        }
+      ],
+      "Routes": [
+        { "DestinationCidrBlock": "10.20.0.0/16", "GatewayId": "local", "State": "active" },
+        { "DestinationCidrBlock": "0.0.0.0/0", "NatGatewayId": "nat-0prod-1b", "State": "active" },
+        { "DestinationPrefixListId": "pl-0s3", "GatewayId": "vpce-0s3", "State": "active" }
+      ]
+    },
+    {
+      "RouteTableId": "rtb-0d4data",
+      "VpcId": "vpc-0prod",
+      "Tags": [{ "Key": "Name", "Value": "prod-data" }],
+      "Associations": [
+        {
+          "RouteTableAssociationId": "rtbassoc-0data",
+          "RouteTableId": "rtb-0d4data",
+          "SubnetId": "subnet-0data-a",
+          "Main": false
+        }
+      ],
+      "Routes": [
+        { "DestinationCidrBlock": "10.20.0.0/16", "GatewayId": "local", "State": "active" }
+      ]
+    }
+  ],
+  "subnets": [
+    {
+      "SubnetId": "subnet-0pub-a",
+      "VpcId": "vpc-0prod",
+      "CidrBlock": "10.20.0.0/24",
+      "AvailabilityZone": "eu-central-1a",
+      "MapPublicIpOnLaunch": true
+    },
+    {
+      "SubnetId": "subnet-0pub-b",
+      "VpcId": "vpc-0prod",
+      "CidrBlock": "10.20.1.0/24",
+      "AvailabilityZone": "eu-central-1b",
+      "MapPublicIpOnLaunch": true
+    },
+    {
+      "SubnetId": "subnet-0priv-a",
+      "VpcId": "vpc-0prod",
+      "CidrBlock": "10.20.10.0/24",
+      "AvailabilityZone": "eu-central-1a",
+      "MapPublicIpOnLaunch": false
+    },
+    {
+      "SubnetId": "subnet-0priv-b",
+      "VpcId": "vpc-0prod",
+      "CidrBlock": "10.20.11.0/24",
+      "AvailabilityZone": "eu-central-1b",
+      "MapPublicIpOnLaunch": false
+    },
+    {
+      "SubnetId": "subnet-0data-a",
+      "VpcId": "vpc-0prod",
+      "CidrBlock": "10.20.20.0/24",
+      "AvailabilityZone": "eu-central-1a",
+      "MapPublicIpOnLaunch": false
+    },
+    {
+      "SubnetId": "subnet-0workers-c",
+      "VpcId": "vpc-0prod",
+      "CidrBlock": "10.20.30.0/24",
+      "AvailabilityZone": "eu-central-1c",
+      "MapPublicIpOnLaunch": false
+    }
+  ]
+}

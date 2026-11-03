@@ -1,0 +1,73 @@
+{
+  "region": "eu-central-1",
+  "route_tables": [
+    {
+      "RouteTableId": "rtb-0clean-main",
+      "VpcId": "vpc-0clean",
+      "Tags": [{ "Key": "Name", "Value": "clean-public" }],
+      "Associations": [
+        {
+          "RouteTableAssociationId": "rtbassoc-0clean-main",
+          "RouteTableId": "rtb-0clean-main",
+          "Main": true
+        },
+        {
+          "RouteTableAssociationId": "rtbassoc-0clean-pub",
+          "RouteTableId": "rtb-0clean-main",
+          "SubnetId": "subnet-0clean-public",
+          "Main": false
+        }
+      ],
+      "Routes": [
+        { "DestinationCidrBlock": "10.10.0.0/16", "GatewayId": "local", "State": "active" },
+        { "DestinationCidrBlock": "0.0.0.0/0", "GatewayId": "igw-0clean", "State": "active" }
+      ]
+    },
+    {
+      "RouteTableId": "rtb-0clean-private",
+      "VpcId": "vpc-0clean",
+      "Tags": [{ "Key": "Name", "Value": "clean-private" }],
+      "Associations": [
+        {
+          "RouteTableAssociationId": "rtbassoc-0clean-pa",
+          "RouteTableId": "rtb-0clean-private",
+          "SubnetId": "subnet-0clean-private-a",
+          "Main": false
+        },
+        {
+          "RouteTableAssociationId": "rtbassoc-0clean-pb",
+          "RouteTableId": "rtb-0clean-private",
+          "SubnetId": "subnet-0clean-private-b",
+          "Main": false
+        }
+      ],
+      "Routes": [
+        { "DestinationCidrBlock": "10.10.0.0/16", "GatewayId": "local", "State": "active" },
+        { "DestinationCidrBlock": "0.0.0.0/0", "NatGatewayId": "nat-0clean", "State": "active" }
+      ]
+    }
+  ],
+  "subnets": [
+    {
+      "SubnetId": "subnet-0clean-public",
+      "VpcId": "vpc-0clean",
+      "CidrBlock": "10.10.0.0/24",
+      "AvailabilityZone": "eu-central-1a",
+      "MapPublicIpOnLaunch": true
+    },
+    {
+      "SubnetId": "subnet-0clean-private-a",
+      "VpcId": "vpc-0clean",
+      "CidrBlock": "10.10.10.0/24",
+      "AvailabilityZone": "eu-central-1a",
+      "MapPublicIpOnLaunch": false
+    },
+    {
+      "SubnetId": "subnet-0clean-private-b",
+      "VpcId": "vpc-0clean",
+      "CidrBlock": "10.10.11.0/24",
+      "AvailabilityZone": "eu-central-1b",
+      "MapPublicIpOnLaunch": false
+    }
+  ]
+}

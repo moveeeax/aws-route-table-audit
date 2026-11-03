@@ -1,0 +1,118 @@
+{
+  "region": "eu-central-1",
+  "route_tables": [
+    {
+      "RouteTableId": "rtb-0bad-main",
+      "VpcId": "vpc-0bad",
+      "Tags": [{ "Key": "Name", "Value": "bad-main" }],
+      "Associations": [
+        {
+          "RouteTableAssociationId": "rtbassoc-0bad-main",
+          "RouteTableId": "rtb-0bad-main",
+          "Main": true
+        }
+      ],
+      "Routes": [
+        { "DestinationCidrBlock": "10.0.0.0/16", "GatewayId": "local", "State": "active" },
+        { "DestinationCidrBlock": "0.0.0.0/0", "GatewayId": "igw-0bad", "State": "active" }
+      ]
+    },
+    {
+      "RouteTableId": "rtb-0bad-workers",
+      "VpcId": "vpc-0bad",
+      "Tags": [{ "Key": "Name", "Value": "bad-workers" }],
+      "Associations": [
+        {
+          "RouteTableAssociationId": "rtbassoc-0bad-worker",
+          "RouteTableId": "rtb-0bad-workers",
+          "SubnetId": "subnet-0bad-worker-a",
+          "Main": false
+        }
+      ],
+      "Routes": [
+        { "DestinationCidrBlock": "10.0.0.0/16", "GatewayId": "local", "State": "active" },
+        { "DestinationCidrBlock": "0.0.0.0/0", "NatGatewayId": "nat-0deadbeef", "State": "blackhole" },
+        {
+          "DestinationCidrBlock": "172.16.0.0/16",
+          "VpcPeeringConnectionId": "pcx-0shared",
+          "State": "active"
+        },
+        {
+          "DestinationCidrBlock": "172.16.5.0/24",
+          "TransitGatewayId": "tgw-0hub",
+          "State": "active"
+        }
+      ]
+    },
+    {
+      "RouteTableId": "rtb-0bad-isolated",
+      "VpcId": "vpc-0bad",
+      "Associations": [
+        {
+          "RouteTableAssociationId": "rtbassoc-0bad-iso",
+          "RouteTableId": "rtb-0bad-isolated",
+          "SubnetId": "subnet-0bad-isolated",
+          "Main": false
+        }
+      ],
+      "Routes": [
+        { "DestinationCidrBlock": "10.0.0.0/16", "GatewayId": "local", "State": "active" }
+      ]
+    },
+    {
+      "RouteTableId": "rtb-0bad-dupe",
+      "VpcId": "vpc-0bad",
+      "Tags": [{ "Key": "Name", "Value": "bad-dupe" }],
+      "Associations": [
+        {
+          "RouteTableAssociationId": "rtbassoc-0bad-dupe",
+          "RouteTableId": "rtb-0bad-dupe",
+          "SubnetId": "subnet-0bad-dupe-private",
+          "Main": false
+        }
+      ],
+      "Routes": [
+        { "DestinationCidrBlock": "10.0.0.0/16", "GatewayId": "local", "State": "active" },
+        { "DestinationCidrBlock": "0.0.0.0/0", "GatewayId": "igw-0bad", "State": "active" },
+        { "DestinationCidrBlock": "0.0.0.0/0", "NatGatewayId": "nat-0live", "State": "active" }
+      ]
+    }
+  ],
+  "subnets": [
+    {
+      "SubnetId": "subnet-0bad-orphan-private",
+      "VpcId": "vpc-0bad",
+      "CidrBlock": "10.0.30.0/24",
+      "AvailabilityZone": "eu-central-1a",
+      "MapPublicIpOnLaunch": false
+    },
+    {
+      "SubnetId": "subnet-0bad-orphan-public",
+      "VpcId": "vpc-0bad",
+      "CidrBlock": "10.0.0.0/24",
+      "AvailabilityZone": "eu-central-1a",
+      "MapPublicIpOnLaunch": true
+    },
+    {
+      "SubnetId": "subnet-0bad-worker-a",
+      "VpcId": "vpc-0bad",
+      "CidrBlock": "10.0.10.0/24",
+      "AvailabilityZone": "eu-central-1a",
+      "MapPublicIpOnLaunch": false
+    },
+    {
+      "SubnetId": "subnet-0bad-isolated",
+      "VpcId": "vpc-0bad",
+      "CidrBlock": "10.0.20.0/24",
+      "AvailabilityZone": "eu-central-1b",
+      "MapPublicIpOnLaunch": false
+    },
+    {
+      "SubnetId": "subnet-0bad-dupe-private",
+      "VpcId": "vpc-0bad",
+      "CidrBlock": "10.0.40.0/24",
+      "AvailabilityZone": "eu-central-1c",
+      "MapPublicIpOnLaunch": false
+    }
+  ]
+}
