@@ -3,7 +3,18 @@
 from __future__ import annotations
 
 import pytest
-from conftest import findings_for, payload, route, rules, subnet, table, table_in
+from conftest import (
+    SERVICE_LISTS,
+    endpoint_route,
+    findings_for,
+    payload,
+    prefix_list,
+    route,
+    rules,
+    subnet,
+    table,
+    table_in,
+)
 
 from aws_route_table_audit.analyze import (
     PayloadError,
@@ -218,6 +229,101 @@ def test_a_subnet_associated_elsewhere_is_not_implicit_on_the_main_table():
     assert findings_for(result, "implicit-main-association") == []
 
 
+def _nat_table(*extra_routes, default=None):
+    default = default or route("0.0.0.0/0", NatGatewayId="nat-1")
+    return table(routes=[route("10.0.0.0/16", GatewayId="local"), default, *extra_routes])
+
+
+def test_nat_table_without_endpoint_routes_is_warned_once_per_service():
+    result = analyze(payload([_nat_table()], prefix_lists=SERVICE_LISTS))
+    findings = findings_for(result, "missing-gateway-endpoint")
+    assert [f["service"] for f in findings] == ["dynamodb", "s3"]
+    assert {f["severity"] for f in findings} == {"warn"}
+    s3 = next(f for f in findings if f["service"] == "s3")
+    assert s3["destination"] == "pl-s3"
+    assert s3["target"] == "nat-1"
+    assert "com.amazonaws.eu-central-1.s3" in s3["message"]
+    assert "nat-1" in s3["message"]
+    assert result["skipped_rules"] == {}
+
+
+def test_endpoint_routes_for_both_services_clear_the_rule():
+    result = analyze(
+        payload(
+            [_nat_table(endpoint_route("pl-s3"), endpoint_route("pl-ddb"))],
+            prefix_lists=SERVICE_LISTS,
+        )
+    )
+    assert findings_for(result, "missing-gateway-endpoint") == []
+
+
+def test_only_the_missing_service_is_reported():
+    result = analyze(payload([_nat_table(endpoint_route("pl-s3"))], prefix_lists=SERVICE_LISTS))
+    assert [f["service"] for f in findings_for(result, "missing-gateway-endpoint")] == [
+        "dynamodb"
+    ]
+
+
+def test_a_blackholed_endpoint_route_does_not_count_as_coverage():
+    result = analyze(
+        payload(
+            [_nat_table(endpoint_route("pl-s3", state="blackhole"), endpoint_route("pl-ddb"))],
+            prefix_lists=SERVICE_LISTS,
+        )
+    )
+    assert [f["service"] for f in findings_for(result, "missing-gateway-endpoint")] == ["s3"]
+    assert "blackhole-route" in rules(result)
+
+
+@pytest.mark.parametrize(
+    "default",
+    [
+        route("0.0.0.0/0", GatewayId="igw-1"),
+        route("0.0.0.0/0", "blackhole", NatGatewayId="nat-dead"),
+        route("0.0.0.0/0", TransitGatewayId="tgw-1"),
+    ],
+)
+def test_tables_not_defaulting_to_a_live_nat_are_not_checked(default):
+    result = analyze(payload([_nat_table(default=default)], prefix_lists=SERVICE_LISTS))
+    assert findings_for(result, "missing-gateway-endpoint") == []
+
+
+def test_other_service_prefix_lists_are_ignored():
+    lists = [
+        prefix_list("pl-s3x", "s3express"),
+        {
+            "PrefixListId": "pl-cf",
+            "PrefixListName": "com.amazonaws.global.cloudfront.origin-facing",
+        },
+    ]
+    result = analyze(payload([_nat_table()], prefix_lists=lists))
+    assert findings_for(result, "missing-gateway-endpoint") == []
+    assert result["skipped_rules"] == {}
+
+
+def test_china_region_prefix_list_names_are_recognised():
+    lists = [{"PrefixListId": "pl-cn", "PrefixListName": "cn.com.amazonaws.cn-north-1.s3"}]
+    result = analyze(payload([_nat_table()], region="cn-north-1", prefix_lists=lists))
+    assert [f["destination"] for f in findings_for(result, "missing-gateway-endpoint")] == ["pl-cn"]
+
+
+def test_payload_without_prefix_lists_skips_the_rule_and_says_so():
+    result = analyze(payload([_nat_table()]))
+    assert findings_for(result, "missing-gateway-endpoint") == []
+    assert "missing-gateway-endpoint" in result["skipped_rules"]
+    assert result["summary"]["severity"] == "ok"
+
+
+def test_broken_fixture_flags_the_nat_routed_table(broken):
+    result = analyze(broken)
+    findings = findings_for(result, "missing-gateway-endpoint")
+    assert [(f["target"], f["service"]) for f in findings] == [
+        ("nat-0live", "dynamodb"),
+        ("nat-0live", "s3"),
+    ]
+    assert "missing-gateway-endpoint" in rules(result, "rtb-0bad-dupe")
+
+
 @pytest.mark.parametrize(
     ("route_dict", "expected"),
     [
@@ -268,6 +374,8 @@ def test_warn_only_report_fails_on_warn_but_not_on_critical():
         {"route_tables": [{"VpcId": "vpc-1"}]},
         {"route_tables": [{"RouteTableId": "rtb-1"}]},
         {"route_tables": [], "subnets": [{"CidrBlock": "10.0.0.0/24"}]},
+        {"route_tables": [], "prefix_lists": {}},
+        {"route_tables": [], "prefix_lists": [{"PrefixListName": "com.amazonaws.x.s3"}]},
     ],
 )
 def test_malformed_payloads_raise_payload_error(bad):

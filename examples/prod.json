@@ -130,5 +130,22 @@
       "AvailabilityZone": "eu-central-1c",
       "MapPublicIpOnLaunch": false
     }
+  ],
+  "prefix_lists": [
+    {
+      "PrefixListId": "pl-0s3",
+      "PrefixListName": "com.amazonaws.eu-central-1.s3",
+      "Cidrs": ["3.5.134.0/23", "52.219.140.0/24"]
+    },
+    {
+      "PrefixListId": "pl-0ddb",
+      "PrefixListName": "com.amazonaws.eu-central-1.dynamodb",
+      "Cidrs": ["3.218.180.0/22", "52.94.4.0/24"]
+    },
+    {
+      "PrefixListId": "pl-0s3express",
+      "PrefixListName": "com.amazonaws.eu-central-1.s3express",
+      "Cidrs": ["3.5.140.0/24"]
+    }
   ]
 }

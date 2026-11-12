@@ -20,17 +20,24 @@ non-zero in CI.
 | `no-default-route` | warn | No `0.0.0.0/0` route at all, so anything outside the local CIDR is dropped. |
 | `duplicate-default-route` | warn | More than one live default route competing for `0.0.0.0/0`, e.g. an igw and a NAT. |
 | `shadowed-overlap` | warn | Two routes in one table where one CIDR contains the other. Names the longest-prefix winner, so a shadowed route is not mistaken for an active one. |
+| `missing-gateway-endpoint` | warn | A table whose live `0.0.0.0/0` route points at a NAT gateway but has no route to the S3 or DynamoDB prefix list (`com.amazonaws.<region>.s3` / `.dynamodb`). That traffic still works, it just pays NAT per-GB processing that a free gateway endpoint would not. One finding per missing service. |
 
 A default route next to specific routes is how routing is supposed to work, so `0.0.0.0/0`
 and `::/0` are never treated as the shadowing supernet.
+
+`missing-gateway-endpoint` needs the region's prefix lists in the payload. A payload saved
+by an older version, or a run where `ec2:DescribePrefixLists` was denied, skips that rule
+and says so on stderr and under `skipped_rules` in the JSON report; the other rules run as
+before.
 
 Tables are sorted worst-finding first, and the exit code is driven by `--fail-on`.
 
 ## How it works
 
-Two API calls: `describe_route_tables` and `describe_subnets`, both filterable by
-`--vpc-id`. The collector returns plain dicts and the rule engine consumes them, which
-means two useful things. Associations get joined properly — explicit subnet associations,
+Three API calls: `describe_route_tables` and `describe_subnets`, both filterable by
+`--vpc-id`, and an unfiltered `describe_prefix_lists` that maps the S3 and DynamoDB
+prefix list ids of the region. The collector returns plain dicts and the rule engine
+consumes them, which means two useful things. Associations get joined properly — explicit subnet associations,
 the main table, and the subnets that reach the main table only because nobody associated
 them — and every rule is testable without AWS credentials. `--save-json` writes the
 payload, `--from-json` replays it. CIDR containment is `ipaddress` from the standard
@@ -81,11 +88,15 @@ warn      rtb-0b2private-a (prod-private-1a)  vpc-0prod  10.90.0.0/16 (via peeri
                                                          transit gateway tgw-0hub); 10.90.7.0/24
                                                          wins by longest-prefix match for addresses
                                                          inside it
+warn      rtb-0c3private-b (prod-private-1b)  vpc-0prod  no gateway endpoint route for DynamoDB
+                                                         (pl-0ddb,
+                                                         com.amazonaws.eu-central-1.dynamodb): its
+                                                         traffic goes through nat gateway
+                                                         nat-0prod-1b and pays NAT data processing
 warn      rtb-0d4data (prod-data)             vpc-0prod  no 0.0.0.0/0 route: anything not matching a
                                                          local route is dropped
-ok        rtb-0c3private-b (prod-private-1b)  vpc-0prod  clean
 
-4 findings: 2 critical, 2 warn. worst: critical.
+5 findings: 2 critical, 3 warn. worst: critical.
 $ echo $?
 1
 ```
@@ -117,8 +128,9 @@ rules only show up in the log until you raise `--fail-on` to `warn`.
 
 ## Permissions
 
-`ec2:DescribeRouteTables` and `ec2:DescribeSubnets`. Nothing is written, so a read-only role
-is enough.
+`ec2:DescribeRouteTables`, `ec2:DescribeSubnets` and `ec2:DescribePrefixLists`. Nothing is
+written, so a read-only role is enough. Without `ec2:DescribePrefixLists` the run still
+succeeds and only `missing-gateway-endpoint` is skipped.
 
 ## License
 
