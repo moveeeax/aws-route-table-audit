@@ -63,8 +63,23 @@ def subnet(subnet_id: str, cidr: str = "10.0.1.0/24", public: bool = False, vpc_
     }
 
 
-def payload(tables, subnets=(), region: str = "eu-central-1") -> dict:
-    return {"region": region, "route_tables": list(tables), "subnets": list(subnets)}
+def payload(tables, subnets=(), region: str = "eu-central-1", prefix_lists=None) -> dict:
+    built = {"region": region, "route_tables": list(tables), "subnets": list(subnets)}
+    if prefix_lists is not None:
+        built["prefix_lists"] = list(prefix_lists)
+    return built
+
+
+def prefix_list(prefix_list_id: str, service: str, region: str = "eu-central-1") -> dict:
+    return {"PrefixListId": prefix_list_id, "PrefixListName": f"com.amazonaws.{region}.{service}"}
+
+
+#: The two gateway-endpoint services, as describe_prefix_lists returns them.
+SERVICE_LISTS = (prefix_list("pl-s3", "s3"), prefix_list("pl-ddb", "dynamodb"))
+
+
+def endpoint_route(prefix_list_id: str, state: str = "active", vpce: str = "vpce-1") -> dict:
+    return {"DestinationPrefixListId": prefix_list_id, "GatewayId": vpce, "State": state}
 
 
 def rules(result, route_table_id: str | None = None) -> list[str]:

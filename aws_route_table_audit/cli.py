@@ -19,8 +19,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="aws-route-table-audit",
         description="Find blackholed routes, implicit main-table subnets, missing or "
-        "duplicated default routes, shadowed CIDRs and private subnets routed at an "
-        "internet gateway.",
+        "duplicated default routes, shadowed CIDRs, private subnets routed at an "
+        "internet gateway and NAT-routed tables without S3/DynamoDB gateway endpoints.",
     )
     parser.add_argument("--region", help="AWS region (defaults to the session region)")
     parser.add_argument("--vpc-id", help="restrict the audit to one VPC")
@@ -85,6 +85,8 @@ def main(argv: list[str] | None = None) -> int:
     except PayloadError as error:
         print(f"aws-route-table-audit: {error}", file=sys.stderr)
         return EXIT_USAGE
+    for rule, reason in report["skipped_rules"].items():
+        print(f"aws-route-table-audit: {rule} skipped: {reason}", file=sys.stderr)
 
     if args.save_json:
         try:

@@ -111,3 +111,18 @@ def test_collect_is_not_imported_when_replaying(capsys, monkeypatch):
     monkeypatch.delitem(__import__("sys").modules, "boto3", raising=False)
     code, _, _ = run(capsys, "--from-json", str(FIXTURES / "clean.json"))
     assert code == 0
+
+
+def test_old_payload_without_prefix_lists_notes_the_skipped_rule(capsys, tmp_path):
+    old = json.loads((FIXTURES / "clean.json").read_text(encoding="utf-8"))
+    del old["prefix_lists"]
+    path = tmp_path / "old.json"
+    path.write_text(json.dumps(old), encoding="utf-8")
+    code, _, err = run(capsys, "--from-json", str(path))
+    assert code == 0
+    assert "missing-gateway-endpoint skipped" in err
+
+
+def test_full_payload_prints_nothing_on_stderr(capsys):
+    _, _, err = run(capsys, "--from-json", str(FIXTURES / "clean.json"))
+    assert err == ""
